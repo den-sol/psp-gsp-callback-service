@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
+import { IdentityModule } from './identity/identity.module';
 import { PersistenceModule } from './persistence/persistence.module';
 
 @Module({
@@ -10,6 +11,7 @@ import { PersistenceModule } from './persistence/persistence.module';
     ConfigModule.forRoot({ isGlobal: true }),
     CommonModule,
     PersistenceModule,
+    IdentityModule,
   ],
   controllers: [AppController],
   providers: [AppService],

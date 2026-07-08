@@ -1,3 +1,4 @@
+import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { AppLogger } from './common/app-logger.service';
@@ -10,6 +11,16 @@ async function bootstrap() {
 
   app.useLogger(app.get(AppLogger));
   app.use(correlationIdMiddleware);
+
+  // Reject unknown fields and coerce payloads to DTO types. Validation
+  // failures surface as 400s formatted by the global exception filter.
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  );
 
   await app.listen(process.env.PORT ?? 3000);
 }
