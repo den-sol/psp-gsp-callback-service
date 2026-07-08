@@ -132,5 +132,5 @@ Clear separation: `identity` and `webhooks` never write balances; `webhooks` onl
 2. `common` (correlation id, exception filter, logger). **(done)**
 3. `identity` (register/login/logout/profile + session-token AuthGuard) + unit test. **(done)**
 4. `webhooks` (idempotency + event ingest, psp/gsp controllers) + integration test. **(done)**
-5. Tenant-leakage test, Swagger, seed, webhook payload contract test (nice-to-have).
+5. Tenant-leakage test, Swagger, seed, webhook payload contract test (nice-to-have). **(done)**
 6. README / API.md / DECISIONS.md.

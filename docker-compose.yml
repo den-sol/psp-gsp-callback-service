@@ -32,8 +32,8 @@ services:
       KNOWN_BRANDS: brand-a,brand-b
     ports:
       - '3000:3000'
-    # Run migrations on boot, then start the compiled app.
-    command: sh -c "npm run migration:run && node dist/main"
+    # Run migrations + idempotent demo seed on boot, then start the app.
+    command: sh -c "npm run migration:run && npm run seed && node dist/main"
 
 volumes:
   db_data:

@@ -15,6 +15,7 @@ import {
 } from '../persistence/entities/raw-event.entity';
 import { isUniqueViolation } from '../persistence/pg-errors';
 import { IdempotencyService } from './idempotency.service';
+import { extractEventType, parseWebhookPayload } from './webhook-payload';
 
 export interface IngestCommand {
   brandId: string;
@@ -30,9 +31,6 @@ export interface IngestResult {
   status: number;
   body: { eventId: string; deduplicated: boolean };
 }
-
-/** Payload fields checked (in order) for a human-readable event type. */
-const EVENT_TYPE_FIELDS = ['type', 'event_type', 'eventType'] as const;
 
 /**
  * The outbox writer shared by the PSP and GSP adapters. A callback is only
@@ -51,7 +49,7 @@ export class EventIngestService {
   ) {}
 
   async ingest(cmd: IngestCommand): Promise<IngestResult> {
-    const payload = this.assertJsonObject(cmd.payload);
+    const payload = parseWebhookPayload(cmd.payload);
 
     const key = this.idempotency.deriveKey(cmd.headerKey, payload);
     if (!key) {
@@ -91,7 +89,7 @@ export class EventIngestService {
           brandId: cmd.brandId,
           source: cmd.source,
           provider: cmd.provider,
-          eventType: this.extractEventType(payload),
+          eventType: extractEventType(payload),
           idempotencyKey: key,
           payload,
           status: 'received',
@@ -142,26 +140,5 @@ export class EventIngestService {
       `Deduplicated ${scope} key "${key}" for brand ${brandId} (event ${eventId})`,
     );
     return { status: HttpStatus.OK, body: { eventId, deduplicated: true } };
-  }
-
-  private assertJsonObject(payload: unknown): Record<string, unknown> {
-    if (
-      payload === null ||
-      typeof payload !== 'object' ||
-      Array.isArray(payload)
-    ) {
-      throw new BadRequestException('Payload must be a JSON object');
-    }
-    return payload as Record<string, unknown>;
-  }
-
-  private extractEventType(payload: Record<string, unknown>): string {
-    for (const field of EVENT_TYPE_FIELDS) {
-      const value = payload[field];
-      if (typeof value === 'string' && value.trim()) {
-        return value.trim().slice(0, 128);
-      }
-    }
-    return 'unknown';
   }
 }

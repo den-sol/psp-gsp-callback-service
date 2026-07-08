@@ -7,6 +7,14 @@ import {
   Res,
   UseGuards,
 } from '@nestjs/common';
+import {
+  ApiBody,
+  ApiHeader,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+  ApiTags,
+} from '@nestjs/swagger';
 import type { Response } from 'express';
 import { BrandContextGuard } from './brand-context.guard';
 import { BrandId } from './brand-id.decorator';
@@ -18,12 +26,31 @@ import { ProviderParamPipe } from './provider-param.pipe';
  * receipt → 202 `{ eventId, deduplicated: false }`; duplicate → 200 with
  * `deduplicated: true`.
  */
+@ApiTags('webhooks')
 @Controller('webhooks/psp')
 @UseGuards(BrandContextGuard)
 export class PspWebhookController {
   constructor(private readonly ingest: EventIngestService) {}
 
   @Post(':provider')
+  @ApiOperation({ summary: 'Ingest a PSP callback (persist + dedupe only)' })
+  @ApiParam({ name: 'provider', example: 'stripe' })
+  @ApiHeader({ name: 'X-Brand-Id', required: true, example: 'brand-a' })
+  @ApiHeader({
+    name: 'Idempotency-Key',
+    required: false,
+    description: 'Overrides the event id from the payload as the dedupe key',
+  })
+  @ApiBody({
+    schema: { type: 'object', additionalProperties: true },
+    examples: {
+      settled: {
+        value: { id: 'evt-1001', type: 'payment.settled', amount: 100 },
+      },
+    },
+  })
+  @ApiResponse({ status: 202, description: 'Persisted, deduplicated: false' })
+  @ApiResponse({ status: 200, description: 'Duplicate, deduplicated: true' })
   async handle(
     @Param('provider', ProviderParamPipe) provider: string,
     @BrandId() brandId: string,

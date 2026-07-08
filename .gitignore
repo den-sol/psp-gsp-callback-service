@@ -125,8 +125,9 @@ dist
 # Stores VSCode versions used for testing VSCode extensions
 .vscode-test
 
-# pnpm
+# pnpm (npm is the package manager for this repo)
 .pnpm-store
+pnpm-lock.yaml
 
 # yarn v3
 .pnp.*
