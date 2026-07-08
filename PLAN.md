@@ -108,6 +108,8 @@ Clear separation: `identity` and `webhooks` never write balances; `webhooks` onl
 - **DECISIONS.md** — TypeORM-vs-Prisma, opaque-session-token auth (why not JWT), tenancy, outbox/`raw_events`, idempotency
   via unique constraint, no-balance-mutation boundary, and trade-offs / what's deferred.
 - **OpenAPI** at `/docs` (nice-to-have) + `docker-compose.yml` (app + db, nice-to-have).
+- **Contract test** for webhook payload schema (nice-to-have) — DTO validation asserted
+  against known-good/known-bad provider payload fixtures.
 
 ## Deterministic local run
 
@@ -126,9 +128,9 @@ Clear separation: `identity` and `webhooks` never write balances; `webhooks` onl
 
 ## Build order
 
-1. Scaffold Nest app, TypeORM config, docker-compose, entities + initial migration.
+1. Scaffold Nest app, TypeORM config, docker-compose, entities + initial migration. **(done)**
 2. `common` (correlation id, exception filter, logger). **(done)**
-3. `identity` (register/login/logout/profile + session-token AuthGuard) + unit test.
-4. `webhooks` (idempotency + event ingest, psp/gsp controllers) + integration test.
-5. Tenant-leakage test, Swagger, seed.
+3. `identity` (register/login/logout/profile + session-token AuthGuard) + unit test. **(done)**
+4. `webhooks` (idempotency + event ingest, psp/gsp controllers) + integration test. **(done)**
+5. Tenant-leakage test, Swagger, seed, webhook payload contract test (nice-to-have).
 6. README / API.md / DECISIONS.md.

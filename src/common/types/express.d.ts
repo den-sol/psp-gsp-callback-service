@@ -6,6 +6,8 @@ declare global {
     interface Request {
       correlationId?: string;
       user?: AuthenticatedUser;
+      /** Validated tenant for webhook requests (set by BrandContextGuard). */
+      brandId?: string;
     }
   }
 }

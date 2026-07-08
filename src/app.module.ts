@@ -5,6 +5,7 @@ import { AppService } from './app.service';
 import { CommonModule } from './common/common.module';
 import { IdentityModule } from './identity/identity.module';
 import { PersistenceModule } from './persistence/persistence.module';
+import { WebhooksModule } from './webhooks/webhooks.module';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { PersistenceModule } from './persistence/persistence.module';
     CommonModule,
     PersistenceModule,
     IdentityModule,
+    WebhooksModule,
   ],
   controllers: [AppController],
   providers: [AppService],

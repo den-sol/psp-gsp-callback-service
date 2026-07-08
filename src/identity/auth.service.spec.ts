@@ -27,15 +27,15 @@ describe('AuthService', () => {
   describe('register', () => {
     it('hashes the password (never stores plaintext) and returns a safe profile', async () => {
       let storedHash = '';
-      users.create.mockImplementation(async (brandId, email, passwordHash) => {
+      users.create.mockImplementation((brandId, email, passwordHash) => {
         storedHash = passwordHash;
-        return {
+        return Promise.resolve({
           id: 'u1',
           brandId,
           email,
           passwordHash,
           createdAt: new Date('2026-01-01T00:00:00Z'),
-        } as User;
+        });
       });
 
       const profile = await service.register({
@@ -47,7 +47,9 @@ describe('AuthService', () => {
       // Password was hashed with argon2, not stored raw, and verifies.
       expect(storedHash).not.toBe('sup3rsecret');
       expect(storedHash.startsWith('$argon2')).toBe(true);
-      await expect(argon2.verify(storedHash, 'sup3rsecret')).resolves.toBe(true);
+      await expect(argon2.verify(storedHash, 'sup3rsecret')).resolves.toBe(
+        true,
+      );
 
       // Response never leaks the hash.
       expect(profile).toEqual({
@@ -56,7 +58,7 @@ describe('AuthService', () => {
         email: 'user@example.com',
         createdAt: new Date('2026-01-01T00:00:00Z'),
       });
-      expect(profile as Record<string, unknown>).not.toHaveProperty(
+      expect(profile as unknown as Record<string, unknown>).not.toHaveProperty(
         'passwordHash',
       );
     });
@@ -95,7 +97,7 @@ describe('AuthService', () => {
         email: 'user@example.com',
         passwordHash: await argon2.hash(password),
         createdAt: new Date(),
-      } as User;
+      };
     }
 
     it('issues an access token for valid credentials', async () => {

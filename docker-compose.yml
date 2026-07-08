@@ -29,6 +29,7 @@ services:
       DB_USERNAME: postgres
       DB_PASSWORD: postgres
       DB_DATABASE: callbacks
+      KNOWN_BRANDS: brand-a,brand-b
     ports:
       - '3000:3000'
     # Run migrations on boot, then start the compiled app.
