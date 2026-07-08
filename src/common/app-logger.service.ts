@@ -3,11 +3,7 @@ import { getCorrelationId } from './correlation.context';
 
 type Level = 'info' | 'warn' | 'error' | 'debug' | 'verbose';
 
-/**
- * Structured (one-JSON-object-per-line) logger. Implements Nest's
- * `LoggerService` so it also captures framework logs once installed via
- * `app.useLogger()`. Every line carries the ambient correlation id when present.
- */
+/** JSON-per-line logger; every line carries the ambient correlation id. */
 @Injectable()
 export class AppLogger implements LoggerService {
   log(message: unknown, context?: string): void {
@@ -36,8 +32,7 @@ export class AppLogger implements LoggerService {
     context?: string,
     stack?: string,
   ): void {
-    // JSON.stringify drops keys whose value is undefined, so optional fields
-    // simply vanish when absent.
+    // JSON.stringify drops undefined fields.
     const entry = {
       timestamp: new Date().toISOString(),
       level,

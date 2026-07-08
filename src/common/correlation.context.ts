@@ -5,9 +5,8 @@ export interface CorrelationStore {
 }
 
 /**
- * Ambient per-request store. The correlation-id middleware seeds it; the logger
- * (and anything else deep in the call stack) reads the current id without it
- * being threaded through every function signature.
+ * Ambient per-request store: the middleware seeds it, the logger and filter
+ * read it without threading the id through every signature.
  */
 export const correlationStorage = new AsyncLocalStorage<CorrelationStore>();
 

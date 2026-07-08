@@ -19,9 +19,8 @@ interface ErrorBody {
 }
 
 /**
- * Catch-all filter that renders every error as a consistent, correlated JSON
- * body. `HttpException`s (incl. `ValidationPipe`'s field-detail arrays) keep
- * their status/message; anything else becomes a 500 without leaking internals.
+ * Renders every error as a structured, correlated JSON body; non-HttpExceptions
+ * become opaque 500s (internals go to logs only).
  */
 @Catch()
 export class HttpExceptionFilter implements ExceptionFilter {

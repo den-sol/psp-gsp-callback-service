@@ -8,9 +8,8 @@ import type { Request } from 'express';
 import { SessionService } from './session.service';
 
 /**
- * Validates the `Authorization: Bearer <token>` header against a live session
- * and attaches `req.user` (userId, brandId, sessionId). Everything downstream
- * derives its tenant from `req.user.brandId`, never from the request body.
+ * Resolves the bearer token to a live session and attaches `req.user`;
+ * downstream code derives its tenant from the session, never the client.
  */
 @Injectable()
 export class AuthGuard implements CanActivate {

@@ -3,11 +3,7 @@ import { APP_FILTER } from '@nestjs/core';
 import { AppLogger } from './app-logger.service';
 import { HttpExceptionFilter } from './http-exception.filter';
 
-/**
- * Cross-cutting infrastructure shared by every feature module: the structured
- * logger and the global exception filter. `@Global` so `AppLogger` can be
- * injected anywhere without re-importing.
- */
+/** Global cross-cutting infra: structured logger + global exception filter. */
 @Global()
 @Module({
   providers: [

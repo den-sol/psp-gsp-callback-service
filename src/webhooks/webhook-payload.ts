@@ -4,12 +4,9 @@ import { BadRequestException } from '@nestjs/common';
 const EVENT_TYPE_FIELDS = ['type', 'event_type', 'eventType'] as const;
 
 /**
- * The (deliberately loose) payload contract for PSP/GSP callbacks: any JSON
- * *object* is accepted and persisted verbatim — provider schemas vary and the
- * outbox must not drop fields it doesn't know. The only hard requirements are
- * enforced at ingest: an object shape (here) and a derivable idempotency key
- * (IdempotencyService). The contract test pins this against real-world
- * provider fixtures.
+ * Deliberately loose contract: any JSON object is persisted verbatim (provider
+ * schemas vary; the outbox must not drop unknown fields). The only hard
+ * requirements are an object shape and a derivable idempotency key.
  */
 export function parseWebhookPayload(body: unknown): Record<string, unknown> {
   if (body === null || typeof body !== 'object' || Array.isArray(body)) {
@@ -18,7 +15,7 @@ export function parseWebhookPayload(body: unknown): Record<string, unknown> {
   return body as Record<string, unknown>;
 }
 
-/** Best-effort event type for the raw_events row; never rejects. */
+/** Best-effort event type; never rejects. */
 export function extractEventType(payload: Record<string, unknown>): string {
   for (const field of EVENT_TYPE_FIELDS) {
     const value = payload[field];

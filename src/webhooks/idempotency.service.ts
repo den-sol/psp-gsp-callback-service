@@ -9,9 +9,8 @@ import { IdempotencyKey } from '../persistence/entities/idempotency-key.entity';
 const EVENT_ID_FIELDS = ['id', 'event_id'] as const;
 
 /**
- * Owns the `idempotency_keys` table and the rules for deriving a dedupe key
- * from an inbound callback. The unique `(brandId, scope, key)` constraint does
- * the actual dedupe; this service only inserts/reads rows around it.
+ * Owns `idempotency_keys` and the dedupe-key rules; the unique
+ * `(brandId, scope, key)` constraint does the actual dedupe.
  */
 @Injectable()
 export class IdempotencyService {
@@ -20,11 +19,7 @@ export class IdempotencyService {
     private readonly keys: Repository<IdempotencyKey>,
   ) {}
 
-  /**
-   * Explicit `Idempotency-Key` header wins; otherwise fall back to the
-   * provider's event id in the payload (`id`, then `event_id`). Returns null
-   * when no usable key exists — the caller rejects the request.
-   */
+  /** Header wins, else the provider event id (`id`, then `event_id`); null → caller rejects. */
   deriveKey(
     headerKey: string | undefined,
     payload: Record<string, unknown>,
@@ -45,19 +40,14 @@ export class IdempotencyService {
     return null;
   }
 
-  /**
-   * Key-order-insensitive SHA-256 of the payload, stored alongside the key so
-   * a key reused with a *different* payload can be rejected instead of
-   * silently replayed.
-   */
+  /** Key-order-insensitive hash, so key reuse with a different payload can be rejected. */
   hashRequest(payload: Record<string, unknown>): string {
     return createHash('sha256').update(stableStringify(payload)).digest('hex');
   }
 
   /**
-   * Inserts the key row. Runs on the caller's transaction manager so the
-   * reservation and the raw-event write commit (or roll back) together.
-   * Throws the driver's unique-violation on a duplicate — callers translate.
+   * Runs on the caller's transaction so reservation and raw-event write
+   * commit or roll back together. Throws a unique-violation on duplicates.
    */
   async reserve(
     manager: EntityManager,
@@ -71,15 +61,13 @@ export class IdempotencyService {
       | 'responseBody'
     >,
   ): Promise<void> {
-    // Cast: TypeORM's QueryDeepPartialEntity chokes on jsonb columns typed
-    // as Record<string, unknown>; the row shape is enforced by the Pick above.
+    // Cast: QueryDeepPartialEntity mishandles jsonb Record columns.
     await manager.insert(
       IdempotencyKey,
       row as QueryDeepPartialEntity<IdempotencyKey>,
     );
   }
 
-  /** Loads the stored row for the dedupe/replay path. Always brand-scoped. */
   findStored(
     brandId: string,
     scope: string,

@@ -11,11 +11,7 @@ import { SessionService } from './session.service';
 import { toUserProfile, UserProfile } from './user-profile';
 import { UsersService } from './users.service';
 
-/**
- * Register / login / logout orchestration. Never returns password material,
- * and login uses a single generic error to avoid leaking which of email or
- * password was wrong (no user enumeration).
- */
+/** Login failures share one generic 401 to prevent user enumeration. */
 @Injectable()
 export class AuthService {
   constructor(
@@ -44,8 +40,7 @@ export class AuthService {
 
   async login(dto: LoginDto): Promise<{ accessToken: string }> {
     const user = await this.users.findByBrandAndEmail(dto.brandId, dto.email);
-    // Verify against a real hash when the user exists; otherwise fall through
-    // to the same generic rejection.
+    // Unknown user and wrong password fall through to the same rejection.
     const ok = !!user && (await argon2.verify(user.passwordHash, dto.password));
     if (!ok || !user) {
       throw new UnauthorizedException('Invalid credentials');

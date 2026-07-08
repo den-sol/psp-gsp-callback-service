@@ -5,11 +5,7 @@ import { Session } from './entities/session.entity';
 import { User } from './entities/user.entity';
 import { InitialSchema1700000000000 } from './migrations/1700000000000-InitialSchema';
 
-/**
- * Single source of truth for the Postgres connection, shared by the Nest
- * runtime module and the standalone TypeORM CLI data-source. Reads plain
- * `process.env`, so both call sites behave identically once env is loaded.
- */
+/** Single source of truth for the Postgres connection (Nest + TypeORM CLI). */
 export function buildDataSourceOptions(): DataSourceOptions {
   return {
     type: 'postgres',
@@ -20,7 +16,7 @@ export function buildDataSourceOptions(): DataSourceOptions {
     database: process.env.DB_DATABASE ?? 'callbacks',
     entities: [User, Session, RawEvent, IdempotencyKey],
     migrations: [InitialSchema1700000000000],
-    // Schema changes only ever flow through migrations, never auto-sync.
+    // Schema changes flow through migrations only, never auto-sync.
     synchronize: false,
     logging: process.env.DB_LOGGING === 'true',
   };

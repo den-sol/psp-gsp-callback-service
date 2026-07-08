@@ -3,10 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from '../persistence/entities/user.entity';
 
-/**
- * Owns user-row access. Emails are normalised to lower-case so the unique
- * `(brandId, email)` constraint treats `A@x.com` and `a@x.com` as one user.
- */
+/** Emails are lower-cased so the `(brandId, email)` unique index is case-insensitive. */
 @Injectable()
 export class UsersService {
   constructor(
@@ -18,7 +15,7 @@ export class UsersService {
     return email.trim().toLowerCase();
   }
 
-  /** Persist a new user. May throw a Postgres unique violation on conflict. */
+  /** Throws a Postgres unique violation on `(brandId, email)` conflict. */
   create(brandId: string, email: string, passwordHash: string): Promise<User> {
     const user = this.users.create({
       brandId,
@@ -34,7 +31,7 @@ export class UsersService {
     });
   }
 
-  /** Look up a user scoped by tenant — id alone is never trusted. */
+  /** Brand-scoped lookup — id alone is never trusted. */
   findScoped(id: string, brandId: string): Promise<User | null> {
     return this.users.findOne({ where: { id, brandId } });
   }

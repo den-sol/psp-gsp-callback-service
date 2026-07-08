@@ -7,9 +7,8 @@ import {
 } from 'typeorm';
 
 /**
- * Dedupe backbone. The unique constraint on `(brandId, scope, key)` is what
- * makes duplicate callbacks safe: a second insert with the same key conflicts,
- * and we replay the stored response instead of re-persisting.
+ * Dedupe backbone: a duplicate insert hits the `(brandId, scope, key)` unique
+ * constraint and the stored response is replayed instead of re-persisting.
  */
 @Entity({ name: 'idempotency_keys' })
 @Index('uq_idempotency_brand_scope_key', ['brandId', 'scope', 'key'], {

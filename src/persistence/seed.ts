@@ -3,11 +3,7 @@ import * as argon2 from 'argon2';
 import dataSource from './data-source';
 import { User } from './entities/user.entity';
 
-/**
- * Idempotent demo seed: one user per known brand, so a reviewer can log in
- * immediately after `docker compose up` without registering first. Safe to
- * re-run — existing users are left untouched.
- */
+/** Idempotent demo seed: one login-ready user per known brand; safe to re-run. */
 const DEMO_USERS = [
   { brandId: 'brand-a', email: 'demo-a@example.com', password: 'Password123!' },
   { brandId: 'brand-b', email: 'demo-b@example.com', password: 'Password123!' },

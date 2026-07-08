@@ -1,98 +1,112 @@
-<p align="center">
-  <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="120" alt="Nest Logo" /></a>
-</p>
+# PSP/GSP Callback Service
 
-[circleci-image]: https://img.shields.io/circleci/build/github/nestjs/nest/master?token=abc123def456
-[circleci-url]: https://circleci.com/gh/nestjs/nest
+A small NestJS + TypeScript backend demonstrating three things:
 
-  <p align="center">A progressive <a href="http://nodejs.org" target="_blank">Node.js</a> framework for building efficient and scalable server-side applications.</p>
-    <p align="center">
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/v/@nestjs/core.svg" alt="NPM Version" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/l/@nestjs/core.svg" alt="Package License" /></a>
-<a href="https://www.npmjs.com/~nestjscore" target="_blank"><img src="https://img.shields.io/npm/dm/@nestjs/common.svg" alt="NPM Downloads" /></a>
-<a href="https://circleci.com/gh/nestjs/nest" target="_blank"><img src="https://img.shields.io/circleci/build/github/nestjs/nest/master" alt="CircleCI" /></a>
-<a href="https://discord.gg/G7Qnnhy" target="_blank"><img src="https://img.shields.io/badge/discord-online-brightgreen.svg" alt="Discord"/></a>
-<a href="https://opencollective.com/nest#backer" target="_blank"><img src="https://opencollective.com/nest/backers/badge.svg" alt="Backers on Open Collective" /></a>
-<a href="https://opencollective.com/nest#sponsor" target="_blank"><img src="https://opencollective.com/nest/sponsors/badge.svg" alt="Sponsors on Open Collective" /></a>
-  <a href="https://paypal.me/kamilmysliwiec" target="_blank"><img src="https://img.shields.io/badge/Donate-PayPal-ff3f59.svg" alt="Donate us"/></a>
-    <a href="https://opencollective.com/nest#sponsor"  target="_blank"><img src="https://img.shields.io/badge/Support%20us-Open%20Collective-41B883.svg" alt="Support us"></a>
-  <a href="https://twitter.com/nestframework" target="_blank"><img src="https://img.shields.io/twitter/follow/nestframework.svg?style=social&label=Follow" alt="Follow us on Twitter"></a>
-</p>
-  <!--[![Backers on Open Collective](https://opencollective.com/nest/backers/badge.svg)](https://opencollective.com/nest#backer)
-  [![Sponsors on Open Collective](https://opencollective.com/nest/sponsors/badge.svg)](https://opencollective.com/nest#sponsor)-->
+1. **Identity basics** — register / login / profile with opaque session tokens (no JWT).
+2. **Safe PSP/GSP callback handling** — callbacks are persisted to a `raw_events`
+   outbox and deduplicated via a unique constraint; **balances are never mutated**.
+3. **Multi-tenant discipline** — every storage query is scoped by `brandId`;
+   tenant context comes from the session (identity) or a validated `X-Brand-Id`
+   header (webhooks), never from the request body.
 
-## Description
+See [API.md](API.md) for request examples and [DECISIONS.md](DECISIONS.md) for
+design choices and trade-offs.
 
-[Nest](https://github.com/nestjs/nest) framework TypeScript starter repository.
+## Requirements
 
-## Project setup
+- Docker + Docker Compose (everything runs in containers), **or**
+- Node.js 22+ and a local Postgres for the non-Docker flow.
+
+## Run it (single command)
 
 ```bash
-$ npm install
+docker compose up --build
 ```
 
-## Compile and run the project
+This starts Postgres, runs migrations and an idempotent demo seed, and boots the
+app on <http://localhost:3000>. Swagger UI: <http://localhost:3000/docs>
+(OpenAPI JSON at `/docs-json`).
+
+Seeded demo users (password `Password123!` for both):
+
+| brandId  | email                |
+| -------- | -------------------- |
+| brand-a  | demo-a@example.com   |
+| brand-b  | demo-b@example.com   |
+
+Quick smoke test:
 
 ```bash
-# development
-$ npm run start
+# Login with a seeded user
+curl -s -X POST localhost:3000/auth/login -H 'Content-Type: application/json' \
+  -d '{"brandId":"brand-a","email":"demo-a@example.com","password":"Password123!"}'
 
-# watch mode
-$ npm run start:dev
-
-# production mode
-$ npm run start:prod
+# Post the same PSP callback twice — second response is deduplicated
+curl -s -X POST localhost:3000/webhooks/psp/stripe -H 'Content-Type: application/json' \
+  -H 'X-Brand-Id: brand-a' -d '{"id":"evt-1","type":"payment.settled","amount":100}'
+curl -s -X POST localhost:3000/webhooks/psp/stripe -H 'Content-Type: application/json' \
+  -H 'X-Brand-Id: brand-a' -d '{"id":"evt-1","type":"payment.settled","amount":100}'
 ```
 
-## Run tests
+## Local development (without the app container)
 
 ```bash
-# unit tests
-$ npm run test
-
-# e2e tests
-$ npm run test:e2e
-
-# test coverage
-$ npm run test:cov
+cp .env.example .env
+docker compose up -d db        # Postgres only
+npm ci
+npm run migration:run
+npm run seed                   # optional demo users
+npm run start:dev              # app with watch mode on :3000
 ```
 
-## Deployment
+## Tests
 
-When you're ready to deploy your NestJS application to production, there are some key steps you can take to ensure it runs as efficiently as possible. Check out the [deployment documentation](https://docs.nestjs.com/deployment) for more information.
-
-If you are looking for a cloud-based platform to deploy your NestJS application, check out [Mau](https://mau.nestjs.com), our official platform for deploying NestJS applications on AWS. Mau makes deployment straightforward and fast, requiring just a few simple steps:
+Unit tests need no database. E2E tests (idempotency, tenant isolation) run
+against the docker-compose Postgres.
 
 ```bash
-$ npm install -g @nestjs/mau
-$ mau deploy
+npm test              # unit tests (no DB)
+npm run test:e2e      # e2e tests (expects the db container up + migrated)
+npm run test:all      # one command: boots db, migrates, runs unit + e2e
 ```
 
-With Mau, you can deploy your application in just a few clicks, allowing you to focus on building features rather than managing infrastructure.
+What's covered:
 
-## Resources
+- **Unit** — auth business logic (password hashing, duplicate registration,
+  no user enumeration on login), idempotency-key derivation, and a contract
+  test of the webhook payload schema against known-good/known-bad provider
+  fixtures ([webhook-payload.spec.ts](src/webhooks/webhook-payload.spec.ts)).
+- **Integration** ([webhooks.e2e-spec.ts](test/webhooks.e2e-spec.ts)) — the same
+  callback POSTed twice produces exactly one `raw_events` row; the repeat is
+  flagged `deduplicated: true`; key-reuse with a different payload is rejected.
+- **Tenant leakage** ([tenant.e2e-spec.ts](test/tenant.e2e-spec.ts)) — brand A's
+  token cannot read brand B's data; brand B's callbacks and idempotency state
+  are invisible to brand A.
 
-Check out a few resources that may come in handy when working with NestJS:
+## Project structure
 
-- Visit the [NestJS Documentation](https://docs.nestjs.com) to learn more about the framework.
-- For questions and support, please visit our [Discord channel](https://discord.gg/G7Qnnhy).
-- To dive deeper and get more hands-on experience, check out our official video [courses](https://courses.nestjs.com/).
-- Deploy your application to AWS with the help of [NestJS Mau](https://mau.nestjs.com) in just a few clicks.
-- Visualize your application graph and interact with the NestJS application in real-time using [NestJS Devtools](https://devtools.nestjs.com).
-- Need help with your project (part-time to full-time)? Check out our official [enterprise support](https://enterprise.nestjs.com).
-- To stay in the loop and get updates, follow us on [X](https://x.com/nestframework) and [LinkedIn](https://linkedin.com/company/nestjs).
-- Looking for a job, or have a job to offer? Check out our official [Jobs board](https://jobs.nestjs.com).
+```
+src/
+  common/          # correlation-id middleware, global exception filter, structured logger
+  persistence/     # TypeORM data source, entities, migrations, seed
+  identity/        # register/login/logout/profile + session-token AuthGuard
+  webhooks/        # psp + gsp controllers, IdempotencyService, EventIngestService (outbox writer)
+```
 
-## Support
+## Configuration
 
-Nest is an MIT-licensed open source project. It can grow thanks to the sponsors and support by the amazing backers. If you'd like to join them, please [read more here](https://docs.nestjs.com/support).
+All settings come from environment variables (see [.env.example](.env.example)):
 
-## Stay in touch
+| Variable            | Default               | Purpose                                    |
+| ------------------- | --------------------- | ------------------------------------------ |
+| `PORT`              | `3000`                | HTTP port                                  |
+| `DB_HOST` … `DB_DATABASE` | localhost postgres | Postgres connection                     |
+| `SESSION_TTL_HOURS` | `24`                  | Session token lifetime                     |
+| `KNOWN_BRANDS`      | `brand-a,brand-b`     | Brands accepted in the `X-Brand-Id` header |
 
-- Author - [Kamil Myśliwiec](https://twitter.com/kammysliwiec)
-- Website - [https://nestjs.com](https://nestjs.com/)
-- Twitter - [@nestframework](https://twitter.com/nestframework)
+## Observability
 
-## License
-
-Nest is [MIT licensed](https://github.com/nestjs/nest/blob/master/LICENSE).
+Every request gets a correlation id (`X-Correlation-Id` header adopted or
+generated), which is echoed in the response header, attached to every log line
+(structured JSON), stored on each `raw_events` row, and included in every error
+body.

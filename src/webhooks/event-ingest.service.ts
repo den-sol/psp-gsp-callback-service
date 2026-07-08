@@ -21,9 +21,8 @@ export interface IngestCommand {
   brandId: string;
   source: RawEventSource;
   provider: string;
-  /** Raw request body — validated here to be a JSON object. */
   payload: unknown;
-  /** Optional `Idempotency-Key` header value. */
+  /** `Idempotency-Key` header value, if sent. */
   headerKey?: string;
 }
 
@@ -33,11 +32,9 @@ export interface IngestResult {
 }
 
 /**
- * The outbox writer shared by the PSP and GSP adapters. A callback is only
- * ever persisted to `raw_events` — balances are never touched here. Dedupe is
- * enforced by reserving `(brandId, scope, key)` in `idempotency_keys` inside
- * the same transaction as the raw-event insert: a duplicate hits the unique
- * constraint, rolls everything back, and replays the stored response.
+ * Outbox writer shared by the PSP/GSP adapters: persists callbacks to
+ * `raw_events` and dedupes by reserving the key in the same transaction.
+ * Balances are never touched here.
  */
 @Injectable()
 export class EventIngestService {
@@ -64,8 +61,7 @@ export class EventIngestService {
       );
     }
 
-    // Scoped per source+provider so e.g. psp/stripe and gsp/evolution can
-    // both emit event id "evt-1" for the same brand without colliding.
+    // Per source+provider, so different providers can emit colliding event ids.
     const scope = `webhook:${cmd.source}:${cmd.provider}`;
     const requestHash = this.idempotency.hashRequest(payload);
     const eventId = randomUUID();
@@ -73,8 +69,7 @@ export class EventIngestService {
 
     try {
       await this.dataSource.transaction(async (manager) => {
-        // Reserve the key first: a duplicate fails here, before any other
-        // write, and the whole transaction rolls back.
+        // Reserve the key first so a duplicate fails before any other write.
         await this.idempotency.reserve(manager, {
           brandId: cmd.brandId,
           scope,
@@ -83,7 +78,7 @@ export class EventIngestService {
           responseStatus: HttpStatus.ACCEPTED,
           responseBody: body,
         });
-        // Cast: same jsonb-vs-QueryDeepPartialEntity friction as in reserve().
+        // Cast: QueryDeepPartialEntity mishandles jsonb Record columns.
         await manager.insert(RawEvent, {
           id: eventId,
           brandId: cmd.brandId,
@@ -95,8 +90,7 @@ export class EventIngestService {
           status: 'received',
           correlationId: getCorrelationId() ?? 'unknown',
         } as QueryDeepPartialEntity<RawEvent>);
-        // TODO: ledger — hand the raw event to the ledger pipeline from here
-        // (outbox consumer). Adapters must never mutate balances directly.
+        // TODO: ledger — outbox consumer hooks in here; adapters never mutate balances.
       });
     } catch (err) {
       if (!isUniqueViolation(err)) {
@@ -111,11 +105,7 @@ export class EventIngestService {
     return { status: HttpStatus.ACCEPTED, body };
   }
 
-  /**
-   * Dedupe path: the key already exists for this brand+scope. Replay the
-   * stored response — unless the payload differs, which is a client bug and
-   * gets a 409 rather than a silently-wrong replay.
-   */
+  /** Replays the stored response; a different payload under the same key is a 409. */
   private async replayStored(
     brandId: string,
     scope: string,
@@ -124,8 +114,7 @@ export class EventIngestService {
   ): Promise<IngestResult> {
     const stored = await this.idempotency.findStored(brandId, scope, key);
     if (!stored) {
-      // Unique violation without a visible row — the competing transaction
-      // must have rolled back after we collided. Ask the caller to retry.
+      // Collision but no visible row: the competing tx rolled back; retry.
       throw new ConflictException(
         'Duplicate callback is being processed, retry shortly',
       );

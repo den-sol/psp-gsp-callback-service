@@ -8,9 +8,8 @@ import { User } from '../persistence/entities/user.entity';
 const DEFAULT_TTL_HOURS = 24;
 
 /**
- * Issues and validates opaque bearer tokens. The raw token is returned to the
- * client exactly once (at login); only its SHA-256 hash is stored, so a DB
- * leak never yields a usable token.
+ * Opaque bearer tokens: the raw token goes to the client once (at login);
+ * only its SHA-256 is stored, so a DB leak never yields a usable token.
  */
 @Injectable()
 export class SessionService {
@@ -28,7 +27,6 @@ export class SessionService {
     return hours * 60 * 60 * 1000;
   }
 
-  /** Create a session for `user`; returns the raw token to hand to the client. */
   async issue(user: User): Promise<string> {
     const rawToken = randomBytes(32).toString('base64url');
     const session = this.sessions.create({
@@ -42,7 +40,7 @@ export class SessionService {
     return rawToken;
   }
 
-  /** Resolve a raw token to a live session, or null if invalid/expired/revoked. */
+  /** Null if unknown, revoked, or expired. */
   async validate(rawToken: string): Promise<Session | null> {
     const session = await this.sessions.findOne({
       where: { tokenHash: SessionService.hash(rawToken) },

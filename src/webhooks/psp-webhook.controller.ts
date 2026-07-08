@@ -21,11 +21,7 @@ import { BrandId } from './brand-id.decorator';
 import { EventIngestService, IngestResult } from './event-ingest.service';
 import { ProviderParamPipe } from './provider-param.pipe';
 
-/**
- * PSP callback stub: persist + dedupe only, no balance mutation. First
- * receipt → 202 `{ eventId, deduplicated: false }`; duplicate → 200 with
- * `deduplicated: true`.
- */
+/** PSP callback stub: persist + dedupe only — 202 first receipt, 200 on duplicates. */
 @ApiTags('webhooks')
 @Controller('webhooks/psp')
 @UseGuards(BrandContextGuard)

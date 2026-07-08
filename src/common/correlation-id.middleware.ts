@@ -5,10 +5,8 @@ import { correlationStorage } from './correlation.context';
 export const CORRELATION_ID_HEADER = 'X-Correlation-Id';
 
 /**
- * Functional middleware (registered via `app.use` in main.ts): adopts an
- * inbound `X-Correlation-Id` or mints one, stashes it on the request and in the
- * async-local store, and echoes it back in the response header. Downstream
- * handlers and the exception filter run inside the store's scope.
+ * Adopts or mints an X-Correlation-Id, echoes it on the response, and runs
+ * downstream handlers inside the async-local store's scope.
  */
 export function correlationIdMiddleware(
   req: Request,

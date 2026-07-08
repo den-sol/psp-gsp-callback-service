@@ -7,9 +7,7 @@ import {
 } from 'typeorm';
 
 /**
- * Server-side auth session. Login issues a random bearer token; we store only
- * its SHA-256 hash here, so a DB leak never exposes a live token. Lookups on
- * `/profile/me` match by `tokenHash` and honour `expiresAt` / `revokedAt`.
+ * Server-side auth session; stores only the SHA-256 of the bearer token.
  * `brandId` is the authoritative tenant context for the request.
  */
 @Entity({ name: 'sessions' })
@@ -25,7 +23,6 @@ export class Session {
   @Column({ name: 'brand_id', type: 'varchar', length: 64 })
   brandId: string;
 
-  // SHA-256 hex of the bearer token handed to the client.
   @Column({ name: 'token_hash', type: 'varchar', length: 64 })
   tokenHash: string;
 

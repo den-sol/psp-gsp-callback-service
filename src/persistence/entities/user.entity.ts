@@ -6,10 +6,7 @@ import {
   PrimaryGeneratedColumn,
 } from 'typeorm';
 
-/**
- * Application user. Scoped by `brandId` so the same email can exist under
- * different brands (tenant isolation). Unique on `(brandId, email)`.
- */
+/** Unique on `(brandId, email)`: the same email may exist under different brands. */
 @Entity({ name: 'users' })
 @Index('uq_users_brand_email', ['brandId', 'email'], { unique: true })
 export class User {

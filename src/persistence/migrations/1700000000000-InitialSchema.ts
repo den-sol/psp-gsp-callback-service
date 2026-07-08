@@ -1,9 +1,6 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
-/**
- * Initial schema: users, sessions, raw_events (outbox), idempotency_keys.
- * Hand-written so the dedupe/unique constraints are explicit and reviewable.
- */
+/** Hand-written so the dedupe/unique constraints are explicit and reviewable. */
 export class InitialSchema1700000000000 implements MigrationInterface {
   name = 'InitialSchema1700000000000';
 

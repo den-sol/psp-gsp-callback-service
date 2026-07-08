@@ -18,8 +18,7 @@ export class ProfileController {
     summary: "Current user, scoped by the session's brand (never client input)",
   })
   async me(@CurrentUser() user: AuthenticatedUser): Promise<UserProfile> {
-    // Scope by brandId from the session — a token for brand A can never
-    // resolve a user under brand B.
+    // Scoped by the session's brand — a brand-A token can never resolve a brand-B user.
     const found = await this.users.findScoped(user.userId, user.brandId);
     if (!found) {
       throw new NotFoundException('User not found');

@@ -6,15 +6,13 @@ import { AppLogger } from './common/app-logger.service';
 import { correlationIdMiddleware } from './common/correlation-id.middleware';
 
 async function bootstrap() {
-  // bufferLogs so early framework logs are replayed through our structured
-  // logger once it's installed below.
+  // bufferLogs: early framework logs replay through the structured logger.
   const app = await NestFactory.create(AppModule, { bufferLogs: true });
 
   app.useLogger(app.get(AppLogger));
   app.use(correlationIdMiddleware);
 
-  // Reject unknown fields and coerce payloads to DTO types. Validation
-  // failures surface as 400s formatted by the global exception filter.
+  // Reject unknown DTO fields; failures become structured 400s.
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

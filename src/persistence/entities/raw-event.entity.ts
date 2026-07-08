@@ -10,9 +10,8 @@ export type RawEventSource = 'psp' | 'gsp';
 export type RawEventStatus = 'received' | 'processed';
 
 /**
- * Outbox row for an inbound PSP/GSP callback. Callbacks are only ever
- * persisted here (`status: received`) — balances are never mutated inline. A
- * future ledger worker consumes these and flips them to `processed`.
+ * Outbox row for an inbound callback — persisted verbatim, never applied to
+ * balances; a future ledger worker flips `received` → `processed`.
  */
 @Entity({ name: 'raw_events' })
 @Index('ix_raw_events_brand_status', ['brandId', 'status'])

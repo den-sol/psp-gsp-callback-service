@@ -11,10 +11,8 @@ import type { Request } from 'express';
 export const BRAND_ID_HEADER = 'x-brand-id';
 
 /**
- * Webhooks carry no session, so tenant context comes from the `X-Brand-Id`
- * header — but only after validation against the configured brand list
- * (`KNOWN_BRANDS`, comma-separated). An unknown brand is rejected before
- * anything touches storage; downstream code reads `req.brandId` only.
+ * Webhooks carry no session: tenant comes from the `X-Brand-Id` header,
+ * validated against `KNOWN_BRANDS` before anything touches storage.
  */
 @Injectable()
 export class BrandContextGuard implements CanActivate {

@@ -21,10 +21,7 @@ import { BrandId } from './brand-id.decorator';
 import { EventIngestService, IngestResult } from './event-ingest.service';
 import { ProviderParamPipe } from './provider-param.pipe';
 
-/**
- * GSP callback stub — same persist-and-dedupe contract as the PSP adapter,
- * distinguished only by `source: 'gsp'` (and therefore its own dedupe scope).
- */
+/** GSP callback stub — same contract as PSP, with `source: 'gsp'` and its own dedupe scope. */
 @ApiTags('webhooks')
 @Controller('webhooks/gsp')
 @UseGuards(BrandContextGuard)
